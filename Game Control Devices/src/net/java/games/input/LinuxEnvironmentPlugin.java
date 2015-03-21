@@ -47,17 +47,21 @@ public final class LinuxEnvironmentPlugin extends ControllerEnvironment {
 	private final static LinuxDeviceThread device_thread = new LinuxDeviceThread();
     
 	static {
-		try {
+		if(wordsize != 64)
 			System.loadLibrary(LIBNAME);
-		} catch (UnsatisfiedLinkError e) {
-			try {
-				System.loadLibrary(LIBNAME + POSTFIX64BIT);
-			} catch (UnsatisfiedLinkError e2) {
-				ControllerEnvironment.logln("Failed to load 64 bit library: " + e2.getMessage());
-				// throw original error
-				throw e;
-			}
-		}
+		else
+			System.loadLibrary(LIBNAME + POSTFIX64BIT);
+//		try {
+//			System.loadLibrary(LIBNAME);
+//		} catch (UnsatisfiedLinkError e) {
+//			try {
+//				System.loadLibrary(LIBNAME + POSTFIX64BIT);
+//			} catch (UnsatisfiedLinkError e2) {
+//				ControllerEnvironment.logln("Failed to load 64 bit library: " + e2.getMessage());
+//				// throw original error
+//				throw e;
+//			}
+//		}
 	}
 
 	public final static Object execute(LinuxDeviceTask task) throws IOException {
