@@ -42,7 +42,7 @@ public abstract class MTextBase extends MAbstractControl {
 	
 
 	/** The styled text used by this control */
-	public MStyledString stext = null;
+	public MStyledString stext = new MStyledString("");;
 	
 	protected Font localFont = M4P.globalFont;
 	

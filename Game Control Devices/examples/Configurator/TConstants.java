@@ -47,4 +47,3 @@ public interface TConstants {
 
   String SEPARATOR = "\t";
 }
-

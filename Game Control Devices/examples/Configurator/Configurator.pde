@@ -47,11 +47,14 @@ GButton btnSelSketch;
 
 List<TSelectEntry> deviceEntries =  new ArrayList<TSelectEntry>();
 
-public void setup() {
+public void settings(){
   controlIO = ControlIO.getInstance(this);
   panelHeight = 40;
   int appHeight = controlIO.getNumberOfDevices() *20 + 40 + panelHeight;
   size(800, appHeight);
+}
+
+public void setup() {
   G4P.messagesEnabled(false);                                                                             
   G4P.setGlobalColorScheme(GCScheme.GREEN_SCHEME);
   if (frame != null)
@@ -146,4 +149,3 @@ public void selectSketch() {
     }
   }
 }
-

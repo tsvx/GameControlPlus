@@ -6,7 +6,6 @@ import g4p_controls.GLabel;
 import g4p_controls.GTabManager;
 import g4p_controls.GTextArea;
 import g4p_controls.GTextField;
-import g4p_controls.GWinApplet;
 import g4p_controls.GWinData;
 import g4p_controls.GWindow;
 
@@ -193,7 +192,7 @@ public class TConfigUI implements PConstants, TConstants {
     txaStatus.setText("");
   }
 
-  synchronized public void pre(GWinApplet appc, GWinData data) {
+  synchronized public void pre(PApplet appc, GWinData data) {
     current = null;
     for (TBase ui : uiElements) {
       ui.update();
@@ -204,7 +203,7 @@ public class TConfigUI implements PConstants, TConstants {
     }
   }
 
-  synchronized public void mouse(GWinApplet appc, GWinData data, MouseEvent mevent) {
+  synchronized public void mouse(PApplet appc, GWinData data, MouseEvent mevent) {
     switch(mevent.getAction()) {
     case MouseEvent.PRESS:
       if (current != null) {
@@ -233,7 +232,7 @@ public class TConfigUI implements PConstants, TConstants {
     }
   }
 
-  synchronized public void draw(GWinApplet appc, GWinData data) {
+  synchronized public void draw(PApplet appc, GWinData data) {
     appc.background(BACKGROUND);
     if (!active) return;
     // Draw control panel at bottom
@@ -332,70 +331,69 @@ public class TConfigUI implements PConstants, TConstants {
 
     // CREATE THE WINDOW
     String title = "'" + device.getName() + "'  [" + device.getTypeName() + " on " + device.getPortTypeName() + "]"; 
-    window = new GWindow(papp, title, 80 + nbrWindows * 40, 100 + nbrWindows * 30, 1020, winHeight, false, G4P.JAVA2D);
-    window.setResizable(false);
+    window = GWindow.getWindow(papp, title, 80 + nbrWindows * 40, 100 + nbrWindows * 30, 1020, winHeight, JAVA2D);
     window.addDrawHandler(this, "draw");
     window.addMouseHandler(this, "mouse");
     window.addPreHandler(this, "pre");
-    window.papplet.noLoop();
+    window.noLoop();
     tabManager = new GTabManager();
     G4P.setCursor(CROSS);	
     nbrWindows++;
 
     // Create the control panel
-    px = window.papplet.width - PANEL_WIDTH + 10;
+    px = window.width - PANEL_WIDTH + 10;
     pw = PANEL_WIDTH - 20;
     py = 10;
-    GLabel lblDeviceUsagle = new GLabel(window.papplet, px, py, pw, 20, "Device role (e.g. Tank controller)");
+    GLabel lblDeviceUsagle = new GLabel(window, px, py, pw, 20, "Device role (e.g. Tank controller)");
     lblDeviceUsagle.setTextAlign(GAlign.LEFT, null);
     lblDeviceUsagle.setLocalColorScheme(G4P.GREEN_SCHEME);
     lblDeviceUsagle.setTextBold();
     lblDeviceUsagle.setOpaque(true);
     py += 22;
-    txfDeviceUsage = new GTextField(window.papplet, px, py, pw, 20);
+    txfDeviceUsage = new GTextField(window, px, py, pw, 20);
     txfDeviceUsage.setLocalColorScheme(G4P.GREEN_SCHEME);
     txfDeviceUsage.setPromptText("How will this device be used?");
     txfDeviceUsage.addEventHandler(this, "device_usage");
     py += 30;
-    GLabel lblFilenamePrompt = new GLabel(window.papplet, px, py, pw, 20, "Filename for this configuration");
+    GLabel lblFilenamePrompt = new GLabel(window, px, py, pw, 20, "Filename for this configuration");
     lblFilenamePrompt.setTextAlign(GAlign.LEFT, null);
     lblFilenamePrompt.setLocalColorScheme(G4P.GREEN_SCHEME);
     lblFilenamePrompt.setTextBold();
     lblFilenamePrompt.setOpaque(true);
     py += 22;
-    txfFilename = new GTextField(window.papplet, px, py, pw, 20);
+    txfFilename = new GTextField(window, px, py, pw, 20);
     txfFilename.setLocalColorScheme(G4P.GREEN_SCHEME);
     txfFilename.setPromptText("Enter a filename for this configuration");
     py += 26;
     float bw = (pw - 20)/3;
-    GButton btnClearStatus = new GButton(window.papplet, px, py, bw, 20);
+    GButton btnClearStatus = new GButton(window, px, py, bw, 20);
     btnClearStatus.setLocalColorScheme(G4P.GREEN_SCHEME);
     btnClearStatus.setText("Clear Status");
     btnClearStatus.addEventHandler(this, "clear_click");
 
-    GButton btnVerify = new GButton(window.papplet, px + (pw - bw)/2, py, bw, 20);
+    GButton btnVerify = new GButton(window, px + (pw - bw)/2, py, bw, 20);
     btnVerify.setLocalColorScheme(G4P.GREEN_SCHEME);
     btnVerify.setText("Verify");
     btnVerify.addEventHandler(this, "verify_click");
 
-    GButton btnSave = new GButton(window.papplet, px + pw - bw, py, bw, 20);
+    GButton btnSave = new GButton(window, px + pw - bw, py, bw, 20);
     btnSave.setLocalColorScheme(G4P.GREEN_SCHEME);
     btnSave.setText("Save");
     btnSave.addEventHandler(this, "save_click");
     py += 30;
-    GLabel lblStatus = new GLabel(window.papplet, px, py, pw, 20, "VERIFY / SAVE STATUS REPORT");
+    GLabel lblStatus = new GLabel(window, px, py, pw, 20, "VERIFY / SAVE STATUS REPORT");
     lblStatus.setLocalColorScheme(G4P.GREEN_SCHEME);
     lblStatus.setTextBold();
     lblStatus.setOpaque(true);
     py += 22;
-    txaStatus = new GTextArea(window.papplet, px, py, pw, 140, G4P.SCROLLBARS_VERTICAL_ONLY);
+    txaStatus = new GTextArea(window, px, py, pw, 140, G4P.SCROLLBARS_VERTICAL_ONLY);
     txaStatus.setLocalColorScheme(G4P.GREEN_SCHEME);
     txaStatus.setPromptText("Verify / save status report");
     py += txaStatus.getHeight() + 2;
 
     // Create and add inputs to UI 
-    window.papplet.textSize(fontSize);
-    px = window.papplet.width - 10 - INPUT_UI_LENGTH - PANEL_WIDTH;
+    window.textSize(fontSize);
+    px = window.width - 10 - INPUT_UI_LENGTH - PANEL_WIDTH;
     py = ELEMENT_UI_GAP + (spaceNeeded - spaceForInputs) / 2; 
     for (ControlInput input : device.getInputs()) {
       TBaseInput ui = TBaseInput.makeInputUI(this, input, px, py);
@@ -417,11 +415,10 @@ public class TConfigUI implements PConstants, TConstants {
       for (TConnector c : ui.connectors)
         uiConnections.add(c);
     active = true;
-    window.papplet.loop();
+    window.loop();
   }
 
   void close() {
     window.forceClose();
   }
 }
-

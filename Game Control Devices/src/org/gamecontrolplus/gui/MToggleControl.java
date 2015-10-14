@@ -30,8 +30,8 @@ import java.util.LinkedList;
 
 import org.gamecontrolplus.gui.MStyledString.TextLayoutInfo;
 
+import processing.awt.PGraphicsJava2D;
 import processing.core.PApplet;
-import processing.core.PGraphicsJava2D;
 import processing.event.MouseEvent;
 
 /**
@@ -183,12 +183,12 @@ public abstract class MToggleControl extends MTextIconAlignBase {
 
 	protected void updateBuffer(){
 		if(bufferInvalid) {
+			buffer.beginDraw();
 			Graphics2D g2d = buffer.g2;
 			// Get the latest lines of text
 			LinkedList<TextLayoutInfo> lines = stext.getLines(g2d);	
 			bufferInvalid = false;
 
-			buffer.beginDraw();
 			// Back ground colour
 			if(opaque == true)
 				buffer.background(palette[6]);

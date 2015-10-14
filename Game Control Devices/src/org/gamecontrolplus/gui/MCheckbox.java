@@ -67,13 +67,28 @@ public class MCheckbox extends MToggleControl {
 		setTextAlign(MAlign.LEFT, null);
 		z = Z_SLIPPY;
 		// Now register control with applet
-		createEventHandler(M4P.sketchApplet, "handleToggleControlEvents", 
+		createEventHandler(M4P.sketchWindow, "handleToggleControlEvents", 
 				new Class<?>[]{ MToggleControl.class, MEvent.class }, 
 				new String[]{ "checkbox", "event" } 
 		);
 		registeredMethods = DRAW_METHOD | MOUSE_METHOD;
 		cursorOver = HAND;
-		M4P.addControl(this);
+		M4P.registerControl(this);
+
+//		super(theApplet, p0, p1, p2, p3);
+//		opaque = false;
+//		setText(text);
+//		setIcon("tick.png", 2, MAlign.LEFT, null);
+//		setTextAlign(MAlign.LEFT, null);
+//		z = Z_SLIPPY;
+//		// Now register control with applet
+//		createEventHandler(M4P.sketchApplet, "handleToggleControlEvents", 
+//				new Class<?>[]{ MToggleControl.class, MEvent.class }, 
+//				new String[]{ "checkbox", "event" } 
+//		);
+//		registeredMethods = DRAW_METHOD | MOUSE_METHOD;
+//		cursorOver = HAND;
+//		M4P.addControl(this);
 	}
 
 	/**

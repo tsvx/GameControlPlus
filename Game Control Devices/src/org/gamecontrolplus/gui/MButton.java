@@ -30,8 +30,8 @@ import java.util.LinkedList;
 import org.gamecontrolplus.gui.MHotSpot.HSrect;
 import org.gamecontrolplus.gui.MStyledString.TextLayoutInfo;
 
+import processing.awt.PGraphicsJava2D;
 import processing.core.PApplet;
-import processing.core.PGraphicsJava2D;
 import processing.event.MouseEvent;
 
 /**
@@ -78,23 +78,39 @@ public class MButton extends MTextIconAlignBase {
 	
 	public MButton(PApplet theApplet, float p0, float p1, float p2, float p3, String text) {
 		super(theApplet, p0, p1, p2, p3);
-		// The image buffer is just for the button surface
-		buffer = (PGraphicsJava2D) winApp.createGraphics((int)width, (int)height, PApplet.JAVA2D);
-		buffer.rectMode(PApplet.CORNER);
-		buffer.g2.setFont(localFont);
 		hotspots = new MHotSpot[]{
 				new HSrect(1, 0, 0, width, height)		// control surface
 		};
 		setText(text);
 		z = Z_SLIPPY;
 		// Now register control with applet
-		createEventHandler(M4P.sketchApplet, "handleButtonEvents", 
+		createEventHandler(M4P.sketchWindow, "handleButtonEvents", 
 				new Class<?>[]{ MButton.class, MEvent.class }, 
 				new String[]{ "button", "event" } 
-		);
+				);
 		registeredMethods = DRAW_METHOD | MOUSE_METHOD;
 		cursorOver = HAND;
-		M4P.addControl(this);
+		// Must register control
+		M4P.registerControl(this);
+
+//		super(theApplet, p0, p1, p2, p3);
+//		// The image buffer is just for the button surface
+//		buffer = (PGraphicsJava2D) winApp.createGraphics((int)width, (int)height, PApplet.JAVA2D);
+//		buffer.rectMode(PApplet.CORNER);
+//		buffer.g2.setFont(localFont);
+//		hotspots = new MHotSpot[]{
+//				new HSrect(1, 0, 0, width, height)		// control surface
+//		};
+//		setText(text);
+//		z = Z_SLIPPY;
+//		// Now register control with applet
+//		createEventHandler(M4P.sketchApplet, "handleButtonEvents", 
+//				new Class<?>[]{ MButton.class, MEvent.class }, 
+//				new String[]{ "button", "event" } 
+//		);
+//		registeredMethods = DRAW_METHOD | MOUSE_METHOD;
+//		cursorOver = HAND;
+//		M4P.addControl(this);
 	}
 	
 	/**
@@ -220,11 +236,11 @@ public class MButton extends MTextIconAlignBase {
 	
 	protected void updateBuffer(){
 		if(bufferInvalid) {
+			buffer.beginDraw();
 			Graphics2D g2d = buffer.g2;
 			// Get the latest lines of text
 			LinkedList<TextLayoutInfo> lines = stext.getLines(g2d);	
 			bufferInvalid = false;
-			buffer.beginDraw();
 			// Back ground colour
 			switch(status){
 			case OVER_CONTROL:

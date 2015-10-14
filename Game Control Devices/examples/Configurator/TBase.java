@@ -21,7 +21,7 @@ public abstract class TBase implements  PConstants, TConstants {
 
   TBase(TConfigUI ccw, float x, float y, int nbr_connects) {
     this.ccw = ccw;
-    app = ccw.window.papplet;
+    app = ccw.window;
     UI_HEIGHT = ccw.desc_UI_height;
     px = x;
     py = y;
@@ -44,4 +44,3 @@ public abstract class TBase implements  PConstants, TConstants {
 
   public abstract void draw();
 }
-

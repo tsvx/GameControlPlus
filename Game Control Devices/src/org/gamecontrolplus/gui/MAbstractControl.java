@@ -3,7 +3,7 @@
   	http://www.lagers.org.uk/g4p/index.html
 	http://gui4processing.googlecode.com/svn/trunk/
 
-  Copyright (c) 2008-12 Peter Lager
+  Copyright (c) 2008- Peter Lager
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -23,6 +23,7 @@
 
 package org.gamecontrolplus.gui;
 
+
 import java.awt.Color;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.NoninvertibleTransformException;
@@ -31,10 +32,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 
+import processing.awt.PGraphicsJava2D;
 import processing.core.PApplet;
 import processing.core.PConstants;
 import processing.core.PGraphics;
-import processing.core.PGraphicsJava2D;
 import processing.event.KeyEvent;
 import processing.event.MouseEvent;
 
@@ -199,6 +200,23 @@ public abstract class MAbstractControl implements PConstants, MConstants, MConst
 //			return focusIsWith.toString();
 //	}
 	
+	/**
+	 * Base constructor for ALL control ctors that do not have a visible UI but require 
+	 * access to a PApplet object. <br>
+	 * As of V3.5 the only class using this constructor is GGroup
+	 * 
+	 * @param theApplet
+	 */
+	public MAbstractControl(PApplet theApplet) {
+		M4P.registerSketch(theApplet);;
+		winApp = theApplet;		
+		MCScheme.makeColorSchemes(winApp);
+		rotAngle = 0;
+		z = 0;
+		palette = MCScheme.getColor(localColorScheme);
+		jpalette = MCScheme.getJavaColor(localColorScheme);
+	}
+
 	/*
 	 * Base constructor for ALL control ctors. It will set the position and size of the
 	 * control based on controlMode. <br>
@@ -207,15 +225,14 @@ public abstract class MAbstractControl implements PConstants, MConstants, MConst
 	 */
 	public MAbstractControl(PApplet theApplet, float p0, float p1, float p2, float p3) {
 		// If this is the first control to be created then theAapplet must be the sketchApplet
-		if(M4P.sketchApplet == null)
-			M4P.sketchApplet = theApplet;
-		winApp = theApplet;
-		MCScheme.makeColorSchemes(winApp);
+		this(theApplet);
 		setPositionAndSize(p0, p1, p2, p3);
-		rotAngle = 0;
-		z = 0;
-		palette = MCScheme.getColor(localColorScheme);
-		jpalette = MCScheme.getJavaColor(localColorScheme);
+		// Create the buffer (only created with this ctor)
+		buffer = (PGraphicsJava2D) winApp.createGraphics((int)width, (int)height, PApplet.JAVA2D);
+		buffer.rectMode(PApplet.CORNER);
+		buffer.beginDraw();
+		buffer.endDraw();
+
 		tag = this.getClass().getSimpleName();
 	}
 

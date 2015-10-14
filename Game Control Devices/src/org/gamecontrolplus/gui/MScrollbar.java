@@ -28,8 +28,8 @@ import java.awt.geom.RoundRectangle2D;
 
 import org.gamecontrolplus.gui.MHotSpot.HSrect;
 
+import processing.awt.PGraphicsJava2D;
 import processing.core.PApplet;
-import processing.core.PGraphicsJava2D;
 import processing.event.MouseEvent;
 
 /**
@@ -67,8 +67,6 @@ class MScrollbar extends MAbstractControl {
 	 */
 	public MScrollbar(PApplet theApplet, float p0, float p1, float p2, float p3) {
 		super(theApplet, p0, p1, p2, p3);
-		buffer = (PGraphicsJava2D) winApp.createGraphics((int)width, (int)height, PApplet.JAVA2D);
-		buffer.rectMode(PApplet.CORNER);
 		hotspots = new MHotSpot[]{
 				new HSrect(1, 0, 0, 16, height),			// low cap
 				new HSrect(2, width - 16, 0, 16, height),	// high cap
@@ -83,7 +81,27 @@ class MScrollbar extends MAbstractControl {
 		z = Z_SLIPPY;
 		registeredMethods = DRAW_METHOD | MOUSE_METHOD;
 		cursorOver = HAND;
-		M4P.addControl(this);
+		// Must register control
+		M4P.registerControl(this);
+
+//		super(theApplet, p0, p1, p2, p3);
+//		buffer = (PGraphicsJava2D) winApp.createGraphics((int)width, (int)height, PApplet.JAVA2D);
+//		buffer.rectMode(PApplet.CORNER);
+//		hotspots = new MHotSpot[]{
+//				new HSrect(1, 0, 0, 16, height),			// low cap
+//				new HSrect(2, width - 16, 0, 16, height),	// high cap
+//				new HSrect(9, 17, 0, width - 17, height)	// thumb track
+//		};
+//
+//		lowCap = new RoundRectangle2D.Float(1, 1, 15, height-2, 6, 6);
+//		highCap = new RoundRectangle2D.Float(width - 15, 1, 14.5f, height-2, 6, 6);
+//
+//		opaque = false;
+//
+//		z = Z_SLIPPY;
+//		registeredMethods = DRAW_METHOD | MOUSE_METHOD;
+//		cursorOver = HAND;
+//		M4P.addControl(this);
 	}
 
 	/**
@@ -232,9 +250,9 @@ class MScrollbar extends MAbstractControl {
 
 	protected void updateBuffer(){
 		if(bufferInvalid) {
+			buffer.beginDraw();
 			bufferInvalid = false;
 			Graphics2D g2d = buffer.g2;
-			buffer.beginDraw();
 			if(opaque) {
 				buffer.background(buffer.color(255,0));
 				buffer.fill(palette[6]);

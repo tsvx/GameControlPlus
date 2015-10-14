@@ -35,9 +35,9 @@ import org.gamecontrolplus.gui.MHotSpot.HSrect;
 import org.gamecontrolplus.gui.MStyledString.TextLayoutHitInfo;
 import org.gamecontrolplus.gui.MStyledString.TextLayoutInfo;
 
+import processing.awt.PGraphicsJava2D;
 import processing.core.PApplet;
 import processing.core.PGraphics;
-import processing.core.PGraphicsJava2D;
 import processing.event.MouseEvent;
 
 /**
@@ -112,9 +112,13 @@ public class MTextArea extends MEditableTextControl {
 	public MTextArea(PApplet theApplet, float p0, float p1, float p2, float p3, int sbPolicy, int wrapWidth) {
 		super(theApplet, p0, p1, p2, p3, sbPolicy);
 		children = new LinkedList<MAbstractControl>();
+//		tx = ty = TPAD6;
+//		tw = width - 2 * TPAD6 - ((scrollbarPolicy & SCROLLBAR_VERTICAL) != 0 ? 18 : 0);
+//		th = height - 2 * TPAD6 - ((scrollbarPolicy & SCROLLBAR_HORIZONTAL) != 0 ? 18 : 0);
 		tx = ty = pad;
 		tw = width - 2 * pad - ((scrollbarPolicy & SCROLLBAR_VERTICAL) != 0 ? 18 : 0);
 		th = height - 2 * pad - ((scrollbarPolicy & SCROLLBAR_HORIZONTAL) != 0 ? 18 : 0);
+
 		// The text wrap width is based on the width of the text display area unless
 		// some other value is specified.
 		this.wrapWidth = (wrapWidth == Integer.MAX_VALUE) ? (int)tw : wrapWidth;
@@ -126,17 +130,15 @@ public class MTextArea extends MEditableTextControl {
 		gpTextDisplayArea.lineTo(tw,  0);
 		gpTextDisplayArea.closePath();
 
-		// The image buffer is just for the typing area
-		buffer = (PGraphicsJava2D) winApp.createGraphics((int)width, (int)height, PApplet.JAVA2D);
-		buffer.rectMode(PApplet.CORNER);
-		buffer.g2.setFont(localFont);
 		hotspots = new MHotSpot[]{
 				new HSrect(1, tx, ty, tw, th),			// typing area
 				new HSrect(9, 0, 0, width, height)		// control surface
 		};
+		// Create scrollbars
 		M4P.pushStyle();
 		M4P.showMessages = false;
 		z = Z_STICKY;
+//		M4P.control_mode = MControlMode.CORNER;
 		if((scrollbarPolicy & SCROLLBAR_HORIZONTAL) != 0){
 			hsb = new MScrollbar(theApplet, 0, 0, tw, 16);
 			addControl(hsb, tx, ty + th + 2, 0);
@@ -149,15 +151,67 @@ public class MTextArea extends MEditableTextControl {
 			vsb.addEventHandler(this, "vsbEventHandler");
 			vsb.setAutoHide(autoHide);
 		}
+		setScrollbarValues(0,0);
 		M4P.popStyle();
-		setText("", (int)tw);
-		//		z = Z_STICKY;
-		createEventHandler(M4P.sketchApplet, "handleTextEvents", 
+		
+		setText("");
+		createEventHandler(M4P.sketchWindow, "handleTextEvents", 
 				new Class<?>[]{ MEditableTextControl.class, MEvent.class }, 
 				new String[]{ "textcontrol", "event" } 
 				);
 		registeredMethods = PRE_METHOD | DRAW_METHOD | MOUSE_METHOD | KEY_METHOD;
-		M4P.addControl(this);
+		// Must register control
+		M4P.registerControl(this);
+		bufferInvalid = true;
+
+//		super(theApplet, p0, p1, p2, p3, sbPolicy);
+//		children = new LinkedList<MAbstractControl>();
+//		tx = ty = pad;
+//		tw = width - 2 * pad - ((scrollbarPolicy & SCROLLBAR_VERTICAL) != 0 ? 18 : 0);
+//		th = height - 2 * pad - ((scrollbarPolicy & SCROLLBAR_HORIZONTAL) != 0 ? 18 : 0);
+//		// The text wrap width is based on the width of the text display area unless
+//		// some other value is specified.
+//		this.wrapWidth = (wrapWidth == Integer.MAX_VALUE) ? (int)tw : wrapWidth;
+//		// Clip zone
+//		gpTextDisplayArea = new GeneralPath();
+//		gpTextDisplayArea.moveTo( 0,  0);
+//		gpTextDisplayArea.lineTo( 0, th);
+//		gpTextDisplayArea.lineTo(tw, th);
+//		gpTextDisplayArea.lineTo(tw,  0);
+//		gpTextDisplayArea.closePath();
+//
+//		// The image buffer is just for the typing area
+//		buffer = (PGraphicsJava2D) winApp.createGraphics((int)width, (int)height, PApplet.JAVA2D);
+//		buffer.rectMode(PApplet.CORNER);
+//		buffer.g2.setFont(localFont);
+//		hotspots = new MHotSpot[]{
+//				new HSrect(1, tx, ty, tw, th),			// typing area
+//				new HSrect(9, 0, 0, width, height)		// control surface
+//		};
+//		M4P.pushStyle();
+//		M4P.showMessages = false;
+//		z = Z_STICKY;
+//		if((scrollbarPolicy & SCROLLBAR_HORIZONTAL) != 0){
+//			hsb = new MScrollbar(theApplet, 0, 0, tw, 16);
+//			addControl(hsb, tx, ty + th + 2, 0);
+//			hsb.addEventHandler(this, "hsbEventHandler");
+//			hsb.setAutoHide(autoHide);
+//		}
+//		if((scrollbarPolicy & SCROLLBAR_VERTICAL) != 0){
+//			vsb = new MScrollbar(theApplet, 0, 0, th, 16);
+//			addControl(vsb, tx + tw + 18, ty, PI/2);
+//			vsb.addEventHandler(this, "vsbEventHandler");
+//			vsb.setAutoHide(autoHide);
+//		}
+//		M4P.popStyle();
+//		setText("", (int)tw);
+//		//		z = Z_STICKY;
+//		createEventHandler(M4P.sketchApplet, "handleTextEvents", 
+//				new Class<?>[]{ MEditableTextControl.class, MEvent.class }, 
+//				new String[]{ "textcontrol", "event" } 
+//				);
+//		registeredMethods = PRE_METHOD | DRAW_METHOD | MOUSE_METHOD | KEY_METHOD;
+//		M4P.addControl(this);
 	}
 
 	/**
@@ -344,6 +398,7 @@ public class MTextArea extends MEditableTextControl {
 	 */
 	protected void updateBuffer(){
 		if(bufferInvalid) {
+			buffer.beginDraw();
 			Graphics2D g2d = buffer.g2;
 			// Get the latest lines of text
 			LinkedList<TextLayoutInfo> lines = stext.getLines(g2d);
@@ -353,7 +408,6 @@ public class MTextArea extends MEditableTextControl {
 			bufferInvalid = false;
 
 			TextLayoutHitInfo startSelTLHI = null, endSelTLHI = null;
-			buffer.beginDraw();
 			// Whole control surface if opaque
 			if(opaque)
 				buffer.background(palette[6]);

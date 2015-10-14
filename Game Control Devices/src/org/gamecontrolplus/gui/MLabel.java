@@ -24,14 +24,12 @@
 package org.gamecontrolplus.gui;
 
 import java.awt.Graphics2D;
-import java.awt.RenderingHints;
 import java.awt.font.TextLayout;
 import java.util.LinkedList;
 
 import org.gamecontrolplus.gui.MStyledString.TextLayoutInfo;
 
 import processing.core.PApplet;
-import processing.core.PGraphicsJava2D;
 
 /**
  * The label component.
@@ -61,17 +59,12 @@ public class MLabel extends MTextIconAlignBase {
 	 */
 	public MLabel(PApplet theApplet, float p0, float p1, float p2, float p3, String text) {
 		super(theApplet, p0, p1, p2, p3);
-		// The image buffer is just for the typing area
-		buffer = (PGraphicsJava2D) winApp.createGraphics((int)width, (int)height, PApplet.JAVA2D);
-		buffer.g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-				RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
-		buffer.rectMode(PApplet.CORNER);
-		buffer.g2.setFont(localFont);
 		setText(text);
 		opaque = false;
 		// Now register control with applet
 		registeredMethods = DRAW_METHOD;
-		M4P.addControl(this);
+		// Must register control
+		M4P.registerControl(this);
 	}
 	
 	public void draw(){
@@ -99,11 +92,11 @@ public class MLabel extends MTextIconAlignBase {
 	
 	protected void updateBuffer(){
 		if(bufferInvalid) {
+			buffer.beginDraw();
 			Graphics2D g2d = buffer.g2;
 			// Get the latest lines of text
 			LinkedList<TextLayoutInfo> lines = stext.getLines(g2d);	
 			bufferInvalid = false;
-			buffer.beginDraw();
 			// Back ground colour
 			if(opaque == true)
 				buffer.background(palette[6]);

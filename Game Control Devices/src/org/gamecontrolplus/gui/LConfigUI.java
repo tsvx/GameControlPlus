@@ -44,7 +44,7 @@ public class LConfigUI implements PConstants, LConstants {
 	private void addConfigToGUI(float spaceNeeded, float spaceForDescs, float spaceForInputs){
 		float px, py;
 		// Create and add device inputs to UI 
-		px = window.papplet.width - 10 - INPUT_UI_LENGTH - PANEL_WIDTH;
+		px = window.width - 10 - INPUT_UI_LENGTH - PANEL_WIDTH;
 		py = ELEMENT_UI_GAP + (spaceNeeded - spaceForInputs) / 2; 
 
 		for(ControlInput input : device.getInputs()){
@@ -166,7 +166,7 @@ public class LConfigUI implements PConstants, LConstants {
 		txaStatus.setText("");
 	}
 
-	synchronized public void pre(MWinApplet appc, MWinData data) {
+	synchronized public void pre(PApplet appc, MWinData data) {
 		current = null;
 		for(LBase ui : uiElements){
 			ui.update();
@@ -177,7 +177,7 @@ public class LConfigUI implements PConstants, LConstants {
 		}
 	}
 
-	synchronized public void mouse(MWinApplet appc, MWinData data, MouseEvent mevent) {
+	synchronized public void mouse(PApplet appc, MWinData data, MouseEvent mevent) {
 		switch(mevent.getAction()){
 		case MouseEvent.PRESS:
 			if(current != null){
@@ -219,7 +219,7 @@ public class LConfigUI implements PConstants, LConstants {
 		}
 	}
 
-	synchronized public void draw(MWinApplet appc, MWinData data) {
+	synchronized public void draw(PApplet appc, MWinData data) {
 		appc.background(BACKGROUND);
 		if(!active) return;
 		// Draw control panel at bottom
@@ -309,60 +309,63 @@ public class LConfigUI implements PConstants, LConstants {
 
 		// CREATE THE WINDOW
 		String title = "'" + device.getName() + "'  [" + device.getTypeName() + " on " + device.getPortTypeName() + "]"; 
-		window = new MWindow(papp, title, 80, 100, 1020, winHeight, false, M4P.JAVA2D);
-		window.setResizable(false);
-		window.addDrawHandler(this, "draw");
-		window.addMouseHandler(this, "mouse");
-		window.addPreHandler(this, "pre");
-		window.papplet.noLoop();
+		window = MWindow.getWindow(papp, title, 80, 100, 1020, winHeight, M4P.JAVA2D);
+		//window.setResizable(false);
+//		window.addDrawHandler(this, "draw");
+//		window.addMouseHandler(this, "mouse");
+//		window.addPreHandler(this, "pre");
+//		window.noLoop();
 		tabManager = new MTabManager();
 		M4P.setCursor(CROSS);	
 
 		// Create the control panel
-		px = window.papplet.width - PANEL_WIDTH + 10;
+		px = window.width - PANEL_WIDTH + 10;
 		pw = PANEL_WIDTH - 20;
 		py = 10;
-		MLabel lblFilenamePrompt = new MLabel(window.papplet, px, py, pw, 20, "Config. for: " + config.getUsgae());
+		MLabel lblFilenamePrompt = new MLabel(window, px, py, pw, 20, "Config. for: " + config.getUsgae());
 		lblFilenamePrompt.setTextAlign(MAlign.LEFT, null);
 		lblFilenamePrompt.setLocalColorScheme(M4P.GREEN_SCHEME);
 		lblFilenamePrompt.setTextBold();
 		lblFilenamePrompt.setOpaque(true);
 		py += 26;
 		float bw = (pw - 20)/3;
-		MButton btnClearStatus = new MButton(window.papplet, px, py, bw, 20);
+		MButton btnClearStatus = new MButton(window, px, py, bw, 20);
 		btnClearStatus.setLocalColorScheme(M4P.GREEN_SCHEME);
 		btnClearStatus.setText("Clear Status");
 		btnClearStatus.addEventHandler(this, "clear_click");
-		MButton btnVerify = new MButton(window.papplet, px + (pw - bw)/2, py, bw, 20);
+		MButton btnVerify = new MButton(window, px + (pw - bw)/2, py, bw, 20);
 		btnVerify.setLocalColorScheme(M4P.GREEN_SCHEME);
 		btnVerify.setText("Verify");
 		btnVerify.addEventHandler(this, "verify_click");
-		MButton btnSave = new MButton(window.papplet, px + pw - bw, py, bw, 20);
+		MButton btnSave = new MButton(window, px + pw - bw, py, bw, 20);
 		btnSave.setLocalColorScheme(M4P.GREEN_SCHEME);
 		btnSave.setText("USE");
 		btnSave.addEventHandler(this, "use_device_click");
 		py += 26;
-		MLabel lblStatus = new MLabel(window.papplet, px, py, pw, 20, "VERIFY / SAVE STATUS REPORT");
+		MLabel lblStatus = new MLabel(window, px, py, pw, 20, "VERIFY / SAVE STATUS REPORT");
 		lblStatus.setLocalColorScheme(M4P.GREEN_SCHEME);
 		lblStatus.setTextBold();
 		lblStatus.setOpaque(true);
 		py += 22;
-		txaStatus = new MTextArea(window.papplet, px, py, pw, 140, M4P.SCROLLBARS_VERTICAL_ONLY);
+		txaStatus = new MTextArea(window, px, py, pw, 140, M4P.SCROLLBARS_VERTICAL_ONLY);
 		txaStatus.setLocalColorScheme(M4P.GREEN_SCHEME);
 		txaStatus.setPromptText("Verify / save status report");
 		py += txaStatus.getHeight() + 4;
-		MButton btnQuit = new MButton(window.papplet, px, py, pw, 20);
+		MButton btnQuit = new MButton(window, px, py, pw, 20);
 		btnQuit.setLocalColorScheme(M4P.RED_SCHEME);
 		btnQuit.setText("CANCEL CONFIGURATION AND EXIT");
 		btnQuit.addEventHandler(this, "quit_click");
 
-		window.papplet.textSize(fontSize);
+		window.textSize(fontSize);
 
 		addConfigToGUI(spaceNeeded, spaceForDescs, spaceForInputs);
 		makeExistingConnections();
 
 		active = true;
-		window.papplet.loop();
+		window.addDrawHandler(this, "draw");
+		window.addMouseHandler(this, "mouse");
+		window.addPreHandler(this, "pre");
+		window.loop();
 	}
 
 	void close(){

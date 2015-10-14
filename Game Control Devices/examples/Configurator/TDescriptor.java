@@ -92,4 +92,3 @@ public class TDescriptor extends TBase {
     return txfKey.getText();
   }
 }
-

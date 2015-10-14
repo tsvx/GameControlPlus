@@ -28,6 +28,8 @@ import java.awt.Color;
 import java.awt.FileDialog;
 import java.awt.Font;
 import java.awt.Frame;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -35,10 +37,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 
 import javax.swing.JColorChooser;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.swing.colorchooser.AbstractColorChooserPanel;
 import javax.swing.filechooser.FileFilter;
 
 import processing.core.PApplet;
@@ -53,9 +58,13 @@ import processing.core.PConstants;
  */
 public class M4P implements MConstants, PConstants {
 
-	static PApplet sketchApplet = null;
+	static PApplet sketchWindow = null;
+	// Relays events to main sketch window
+	static MWindowImpl sketchWindowImpl = null;
 
-	public static MWindowCloser windowCloser = null;
+	static List<MWindow> allWindows = new LinkedList<MWindow>();
+
+	static boolean announced = false;
 
 	/**
 	 * return the pretty version of the library.
@@ -74,22 +83,10 @@ public class M4P implements MConstants, PConstants {
 	static int globalColorScheme = MCScheme.BLUE_SCHEME;
 	static int globalAlpha = 255;
 
-	/**
-	 * Java has cross platform support for 5 logical fonts so use one of these
-	 * in preference to platform specific fonts or include them here.
-	 * <ul>
-	 * <li>Dialog </li>
-	 * <li>DialogInput </li>t
-	 * <li>Monospaced </li>
-	 * <li>Serif </li>
-	 * <li>SansSerif </li>
-	 * </ul>
-	 */
+	// Font used for all text controls
 	static Font globalFont = new Font("Dialog", Font.PLAIN, 12);
 	static Font numericLabelFont = new Font("DialogInput", Font.BOLD, 12);
 
-	// Store of info about windows and controls
-	static HashMap<PApplet, MWindowInfo> windows = new HashMap<PApplet, MWindowInfo>();
 	// Used to order controls
 	static MAbstractControl.Z_Order zorder = new MAbstractControl.Z_Order();
 
@@ -100,14 +97,49 @@ public class M4P implements MConstants, PConstants {
 	static boolean showMessages = true;
 
 	// Determines how position and size parameters are interpreted when
-	// a control is created
-	// Introduced V3.0
-//	static MControlMode control_mode = MControlMode.CORNER;
+	// a control is created. Introduced G4P V3.0
+//	static GControlMode control_mode = GControlMode.CORNER;
 
-	static LinkedList<M4Pstyle> styles = new LinkedList<M4Pstyle>();
+	// Used to create a stack of styles with pushStyle and popStyle
+	static LinkedList<G4Pstyle> styles = new LinkedList<G4Pstyle>();
 
+	// Colour chooser
 	static JColorChooser chooser = null;
 	static Color lastColor = Color.white; // White
+
+	/**
+	 * Register a MWindow so we can keep track of all GWindows in the application.
+	 * This will be needed for global transformations e.g. setGlobalAlpha(...)
+	 * This is called from the controls constructor, and also when a MWindow is created.
+	 * @param window
+	 */
+	static void registerWindow(MWindow window){
+		if(!allWindows.contains(window)){
+			allWindows.add(window);
+		}
+	}
+
+	/**
+	 * De-register a window , this is done when a window is closed
+	 * @param window
+	 */
+	static void deregisterWindow(MWindow window){
+		allWindows.remove(window);
+	}
+
+
+	/**
+	 * Used internally to register a control with its window.
+	 * It will replace the addControl method in the controls constructors
+	 * @param control
+	 */
+	static void registerControl(MAbstractControl control){
+		PApplet app = control.getPApplet();
+		if(app == sketchWindow)
+			sketchWindowImpl.addToWindow(control);
+		else if(app instanceof MWindow)
+			((MWindow)app).addToWindow(control);
+	}
 
 	/**
 	 * Used to register the main sketch window with G4P. This is ignored if any
@@ -126,16 +158,13 @@ public class M4P implements MConstants, PConstants {
 	 * @param app
 	 */
 	public static void registerSketch(PApplet app){
-		if(sketchApplet == null) {
-			sketchApplet = app;
-			MWindowInfo winfo = windows.get(app);
-			if(winfo == null){
-				winfo = new MWindowInfo(app);
-				windows.put(app, winfo);
-			}			
+		if(sketchWindow == null && app != null) {
+			sketchWindow = app;
+			sketchWindowImpl = new MWindowImpl(sketchWindow);
+			announceG4P();
 		}
 	}
-
+	
 	/**
 	 * Set the global colour scheme. This will change the local
 	 * colour scheme for every control.
@@ -145,10 +174,23 @@ public class M4P implements MConstants, PConstants {
 		cs = Math.abs(cs) % 16; // Force into valid range
 		if(globalColorScheme != cs){
 			globalColorScheme = cs;
-			for(MWindowInfo winfo : windows.values())
-				winfo.setColorScheme(globalColorScheme);
+			for(MWindow window : allWindows)
+				window.setColorScheme(globalColorScheme);
+			if(sketchWindowImpl != null)
+				sketchWindowImpl.setColorScheme(globalColorScheme);
 		}
 	}
+
+	/**
+	 * Versions of G4P prior to 3.5 used logical fonts for the controls. So if you 
+	 * have old sketches then the text may look different with this and later versions
+	 * of G4P. <br>
+	 * If this is causing a problem then call this method before creating any controls.
+	 */
+//	public static void usePre35Fonts(){
+//		globalFont = new Font("Dialog", Font.PLAIN, 10);
+//		numericLabelFont = new Font("DialogInput", Font.BOLD, 12);
+//	}
 
 	/**
 	 * Set the colour scheme for all the controls drawn by the given 
@@ -159,25 +201,13 @@ public class M4P implements MConstants, PConstants {
 	 */
 	public static void setWindowColorScheme(PApplet app, int cs){
 		cs = Math.abs(cs) % 16; // Force into valid range
-		MWindowInfo winfo = windows.get(app);
-		if(winfo != null)
-			winfo.setColorScheme(cs);
+		if(app == sketchWindow){
+			if(sketchWindowImpl != null)
+				sketchWindowImpl.setColorScheme(cs);
+		}
+		else if(app instanceof MWindow)
+			((MWindow)app).setColorScheme(cs);
 	}
-
-	/**
-	 * Set the colour scheme for all the controls drawn by the given 
-	 * GWindow. This will override any previous colour scheme for 
-	 * these controls.
-	 * @param win
-	 * @param cs
-	 */
-	public static void setWindowColorScheme(MWindow win, int cs){
-		cs = Math.abs(cs) % 16; // Force into valid range
-		MWindowInfo winfo = windows.get(win.papplet);
-		if(winfo != null)
-			winfo.setColorScheme(cs);
-	}
-
 
 	/**
 	 * Set the transparency of all controls. If the alpha level for a 
@@ -186,14 +216,16 @@ public class M4P implements MConstants, PConstants {
 	 * 
 	 * @param alpha value in the range 0 (transparent) to 255 (opaque)
 	 */
-//	public static void setGlobalAlpha(int alpha){
-//		alpha = Math.abs(alpha) % 256; // Force into valid range
-//		if(globalAlpha != alpha){
-//			globalAlpha = alpha;
-//			for(MWindowInfo winfo : windows.values())
-//				winfo.setAlpha(globalAlpha);
-//		}
-//	}
+	public static void setGlobalAlpha(int alpha){
+		alpha = Math.abs(alpha) % 256; // Force into valid range
+		if(globalAlpha != alpha){
+			globalAlpha = alpha;
+			for(MWindow window : allWindows)
+				window.setAlpha(globalAlpha);
+			if(sketchWindowImpl != null)
+				sketchWindowImpl.setAlpha(globalAlpha);
+		}	
+	}
 
 	/**
 	 * Set the transparency level for all controls drawn by the given
@@ -204,74 +236,26 @@ public class M4P implements MConstants, PConstants {
 	 * @param app
 	 * @param alpha value in the range 0 (transparent) to 255 (opaque)
 	 */
-//	public static void setWindowAlpha(PApplet app, int alpha){
-//		alpha = Math.abs(alpha) % 256; // Force into valid range
-//		MWindowInfo winfo = windows.get(app);
-//		if(winfo != null)
-//			winfo.setAlpha(alpha);
-//	}
-
-	/**
-	 * Set the transparency level for all controls drawn by the given
-	 * GWindow. If the alpha level for a control falls below 
-	 * G4P.ALPHA_BLOCK then it will no longer respond to mouse
-	 * and keyboard events.
-	 * 
-	 * @param win apply to this window
-	 * @param alpha value in the range 0 (transparent) to 255 (opaque)
-	 */
-//	public static void setWindowAlpha(MWindow win, int alpha){
-//		alpha = Math.abs(alpha) % 256; // Force into valid range
-//		MWindowInfo winfo = windows.get(win.papplet);
-//		if(winfo != null)
-//			winfo.setAlpha(alpha);
-//	}
-
-	/**
-	 * Register a GWindow object.
-	 * 
-	 * @param window
-	 */
-	static void addWindow(MWindow window){
-		PApplet app = window.papplet;
-		MWindowInfo winfo = windows.get(app);
-		if(winfo == null){
-			winfo = new MWindowInfo(app);
-			windows.put(app, winfo);
+	public static void setWindowAlpha(PApplet app, int alpha){
+		alpha = Math.abs(alpha) % 256; // Force into valid range
+		if(app == sketchWindow){
+			if(sketchWindowImpl != null)
+				sketchWindowImpl.setAlpha(alpha);
 		}
-		// Create and start windows closer object
-		if(windowCloser == null){
-			windowCloser = new MWindowCloser();
-			sketchApplet.registerMethod("post", windowCloser);
-		}
+		else if(app instanceof MWindow)
+			((MWindow)app).setAlpha(alpha);
 	}
 
 	/**
-	 * This is called by the GWindow's WindowAdapter when it detects a 
-	 * WindowClosing event. It adds this window to a list of windows to
-	 * be closed by the GWindowCloser object in its 'post' method.
-	 * 
-	 * @param window the GWindow to be closed
+	 * Display the library version in the ProcessingIDE
 	 */
-	static void markWindowForClosure(MWindow window){
-		windowCloser.addWindow(window);
-	}
-
-	/**
-	 * Used internally to register a control with its applet.
-	 * @param control
-	 */
-	static void addControl(MAbstractControl control){
-		PApplet app = control.getPApplet();
-		// The first applet must be the sketchApplet
-		if(M4P.sketchApplet == null)
-			M4P.sketchApplet = app;
-		MWindowInfo winfo = windows.get(app);
-		if(winfo == null){
-			winfo = new MWindowInfo(app);
-			windows.put(app, winfo);
+	static void announceG4P(){
+		if(!announced){
+			System.out.println("===================================================");
+			System.out.println("   ##project.name## V##library.prettyVersion## created by ##author.name##");
+			System.out.println("===================================================");
+			announced = true;
 		}
-		winfo.addControl(control);
 	}
 
 	/**
@@ -282,44 +266,30 @@ public class M4P implements MConstants, PConstants {
 	 */
 	static boolean removeControl(MAbstractControl control){
 		PApplet app = control.getPApplet();
-		MWindowInfo winfo = windows.get(app);
-		if(winfo != null){
-			winfo.removeControl(control);
+		if(app == sketchWindow){
+			if(sketchWindowImpl != null){
+				sketchWindowImpl.removeFromWindow(control);
+				return true;
+			}
+			return false;
+		}
+		if(app instanceof MWindow){
+			((MWindow)app).removeFromWindow(control);
 			return true;
 		}
 		return false;
 	}
 
 	/**
-	 * Change the way position and size parameters are interpreted when a control is created. 
-	 * or added to another control e.g. GPanel. <br>
-	 * There are 3 modes. <br><pre>
-	 * PApplet.CORNER	 (x, y, w, h) <br>
-	 * PApplet.CORNERS	 (x0, y0, x1, y1) <br>
-	 * PApplet.CENTER	 (cx, cy, w, h) </pre><br>
-	 * 
-	 * @param mode illegal values are ignored leaving the mode unchanged
-	 */
-//	public static void setCtrlMode(MControlMode mode){
-//		if(mode != null)
-//			control_mode = mode;
-//	}
-//
-//	/**
-//	 * Get the control creation mode @see ctrlMode(int mode)
-//	 * @return the current control mode
-//	 */
-//	public static MControlMode getCtrlMode(){
-//		return control_mode;
-//	}
-
-	/**
 	 * G4P has a range of support messages eg <br>if you create a GUI component 
 	 * without an event handler or, <br>a slider where the visible size of the
-	 * slider is less than the difference between min and max values.
+	 * slider is less than the difference between min and max values. <br>
 	 * 
 	 * This method allows the user to enable (default) or disable this option. If
-	 * disable then it should be called before any GUI components are created.
+	 * disable then it should be called before any GUI components are created. <br>
+	 * 
+	 * If you are adding your own event handlers then I suggest that you disable 
+	 * messages.
 	 * 
 	 * @param enable
 	 */
@@ -339,24 +309,42 @@ public class M4P implements MConstants, PConstants {
 	}
 
 	/**
-	 * Inform G4P which cursor shapes will be used.
-	 * Initial values are ARROW (off) and HAND (over)
-	 * use setCursor method
-	 * @param cursorOff
-	 * 
 	 * @deprecated use setCursor(int)
 	 */
-	public static void setCursor(int cursorOff){
+	@Deprecated
+	public static void setCursorOff(int cursorOff){
 		mouseOff = cursorOff;
-		for(MWindowInfo winfo : windows.values())
-			winfo.app.cursor(cursorOff);
 	}
 
 	/**
-	 * Inform G4P which cursor to use for mouse over.
+	 * Set the cursor shape to be used when the mouse is not over a 
+	 * G4P control for the entire application including secondary
+	 * windows.
+	 * @param cursorOff the cursor shape.
+	 */
+	public static void setCursor(int cursorOff){
+		mouseOff = cursorOff;
+		for(MWindow window : allWindows)
+			window.cursor(cursorOff);
+		if(sketchWindow != null)
+			sketchWindow.cursor(cursorOff);
+	}
+
+	/**
+	 * Get the cursor shape used when the mouse is not over a G4P 
+	 * control
+	 * set for the 
 	 * 
 	 */
 	public static int getCursor(){
+		return mouseOff;
+	}
+
+	/**
+	 * @deprecated use getCursor()
+	 */
+	@Deprecated
+	public static int getCursorOff(){
 		return mouseOff;
 	}
 
@@ -366,7 +354,8 @@ public class M4P implements MConstants, PConstants {
 	 * cause a memory leakage.
 	 */
 	static void pushStyle(){
-		M4Pstyle s = new M4Pstyle();
+		G4Pstyle s = new G4Pstyle();
+//		s.ctrlMode = control_mode;
 		s.showMessages = showMessages;
 		// Now save the style for later
 		styles.addLast(s);
@@ -377,7 +366,8 @@ public class M4P implements MConstants, PConstants {
 	 * There should be a matching pushStyle otherwise the program will crash.
 	 */
 	static void popStyle(){
-		M4Pstyle s = styles.removeLast();
+		G4Pstyle s = styles.removeLast();
+//		control_mode = s.ctrlMode;
 		showMessages = s.showMessages;
 	}
 
@@ -388,39 +378,37 @@ public class M4P implements MConstants, PConstants {
 	 * @author Peter
 	 *
 	 */
-	static class M4Pstyle {
+	static class G4Pstyle {
+//		GControlMode ctrlMode;
 		boolean showMessages;
 	}
 
 	/**
-	 * Get a list of all open GWindow objects even if minimised or invisible. <br>
+	 * Get a list of all open MWindow objects even if minimised or invisible. <br>
 	 * If an ArrayList is provided then its contents are cleared before adding references
-	 * to all open GWindow objects. If an ArrayList is not provided then a new 
+	 * to all open MWindow objects. If an ArrayList is not provided then a new 
 	 * ArrayList will be created. <br>
 	 * This method never returns null, if there are no open windows the list will 
 	 * be of size zero.
 	 * 
 	 * @param list an optional ArrayList to use. In null will create a new ArrayList.
-	 * @return an ArrayList of references to all open GWindow objects.
+	 * @return an ArrayList of references to all open MWindow objects.
 	 */
 	public static ArrayList<MWindow> getOpenWindowsAsList(ArrayList<MWindow> list){
 		if(list == null)
 			list = new ArrayList<MWindow>();
 		else
 			list.clear();
-		Collection<MWindowInfo> windowInfos = windows.values();
-		for(MWindowInfo info : windowInfos){
-			if(info.isGWindow)
-				list.add( ((MWinApplet)info.app).owner);
-		}
+		for(MWindow window : allWindows)
+			list.add(window);
 		return list;
 	}
 
 	/**
-	 * Get an array of GWindow objects even if minimised or invisible. <br>
+	 * Get an array of MWindow objects even if minimised or invisible. <br>
 	 * This method never returns null, if there are no open windows the array
 	 *  will be of length zero.
-	 * @return an array of references to all open GWindow objects.
+	 * @return an array of references to all open MWindow objects.
 	 */
 	public static MWindow[] getOpenWindowsAsArray(){
 		ArrayList<MWindow> list = getOpenWindowsAsList(null);
@@ -428,19 +416,63 @@ public class M4P implements MConstants, PConstants {
 	}
 
 	/**
-	 * Use this to check whether a GWindow window is still open (as far as G4P is concerned).
+	 * Use this to check whether a MWindow window is still open (as far as G4P is concerned).
 	 * @param window the window we are interested in
 	 * @return true if G4P still thinks it is open
 	 */
 	public static boolean isWindowOpen(MWindow window){
-		if(window != null){
-			ArrayList<MWindow> list = getOpenWindowsAsList(null);
-			return list.contains(window);
-		}
-		else
-			return false;
+		return (window != null && allWindows.contains(window));
 	}
-	
+
+	/**
+	 * This will open a version of the Java Swing color chooser dialog. The dialog's
+	 * UI is dependent on the OS and JVM implementation running. <br>
+	 * 
+	 * If you click on Cancel then it returns the last color previously selected.
+	 * 
+	 * @return the ARGB colour as a 32 bit integer (as used in Processing). 
+	 */
+//	public static int selectColor(){
+//		Frame frame = getFrame(sketchWindow);
+//		if(chooser == null){
+//			chooser = new JColorChooser();
+//			AbstractColorChooserPanel[] oldPanels = chooser.getChooserPanels();
+//			// Do not assume what panels are present
+//			LinkedList<AbstractColorChooserPanel> panels = new LinkedList<AbstractColorChooserPanel>();	
+//			for(AbstractColorChooserPanel p : oldPanels){
+//				String displayName = p.getDisplayName().toLowerCase();
+//				if(displayName.equals("swatches"))
+//					panels.addLast(p);
+//				else if(displayName.equals("rgb"))
+//					panels.addFirst(p);
+//				else if(displayName.startsWith("hs"))
+//					panels.addFirst(p);
+//			}
+//			AbstractColorChooserPanel[] newPanels;
+//			newPanels = panels.toArray(new AbstractColorChooserPanel[panels.size()]);
+//			chooser.setChooserPanels(newPanels);
+//			ColorPreviewPanel pp = new ColorPreviewPanel(lastColor);
+//			chooser.getSelectionModel().addChangeListener(pp);
+//			chooser.setPreviewPanel(pp);
+//		}
+//		// Set the preview color
+//		((ColorPreviewPanel)chooser.getPreviewPanel()).setPrevColor(lastColor);
+//		// Use the last color selected to start it off
+//		chooser.setColor(lastColor);
+//		JDialog dialog = JColorChooser.createDialog(frame,
+//				"Color picker", 
+//				true, 
+//				chooser, 
+//				new ActionListener() {
+//			public void actionPerformed(ActionEvent e) {
+//				lastColor = chooser.getColor();
+//			}
+//		}, 
+//		null);
+//		dialog.setVisible(true);
+//		return lastColor.getRGB();
+//	}
+
 	/**
 	 * Select a folder from the local file system.
 	 * 
@@ -450,7 +482,8 @@ public class M4P implements MConstants, PConstants {
 	 */
 	public static String selectFolder(String prompt){
 		String selectedFolder = null;
-		Frame frame = (sketchApplet == null) ? null : sketchApplet.frame;
+		Frame frame = getFrame(sketchWindow);
+		//Frame frame = (sketchWindow == null) ? null : sketchWindow.frame;
 		if (PApplet.platform == MACOSX && PApplet.useNativeSelect != false) {
 			FileDialog fileDialog =
 					new FileDialog(frame, prompt, FileDialog.LOAD);
@@ -555,10 +588,10 @@ public class M4P implements MConstants, PConstants {
 		// Assume that a file will not be selected
 		String selectedFile = null;
 		// Get the owner
-		Frame owner = (sketchApplet == null) ? null : sketchApplet.frame;
+		Frame frame = getFrame(sketchWindow);
 		// Create a file filter
 		if (PApplet.useNativeSelect) {
-			FileDialog dialog = new FileDialog(owner, prompt, mode);
+			FileDialog dialog = new FileDialog(frame, prompt, mode);
 			FilenameFilter filter = null;
 			if(types != null && types.length() > 0){
 				filter = new MFilenameChooserFilter(types);
@@ -586,9 +619,9 @@ public class M4P implements MConstants, PConstants {
 			}
 			int result = JFileChooser.ERROR_OPTION;
 			if (mode == FileDialog.SAVE) {
-				result = chooser.showSaveDialog(owner);
+				result = chooser.showSaveDialog(frame);
 			} else if (mode == FileDialog.LOAD) {
-				result = chooser.showOpenDialog(owner);
+				result = chooser.showOpenDialog(frame);
 			}
 			if (result == JFileChooser.APPROVE_OPTION) {
 				try {
@@ -671,7 +704,7 @@ public class M4P implements MConstants, PConstants {
 	 * @param title the text to appear in the dialog's title bar.
 	 * @param messageType the message type
 	 */
-	public static void showMessage(Object owner, String message, String title, int messageType){
+	public static void showMessage(PApplet owner, String message, String title, int messageType){
 		Frame frame = getFrame(owner);
 		String m;
 		if(PApplet.platform == PApplet.MACOSX){
@@ -714,7 +747,7 @@ public class M4P implements MConstants, PConstants {
 	 * @param optionType
 	 * @return which button was clicked
 	 */
-	public static int selectOption(Object owner, String message, String title, int messageType, int optionType){
+	public static int selectOption(PApplet owner, String message, String title, int messageType, int optionType){
 		Frame frame = getFrame(owner);
 		String m;
 		if(PApplet.platform == PApplet.MACOSX){
@@ -734,18 +767,24 @@ public class M4P implements MConstants, PConstants {
 	 * @param owner the object that is responsible for this message
 	 * @return the frame (if any) that owns this object
 	 */
-	private static Frame getFrame(Object owner){
+	private static Frame getFrame(PApplet owner){
 		Frame frame = null;
-		if(owner instanceof PApplet || owner instanceof MWinApplet)
-			frame = ((PApplet)owner).frame;
-		else if(owner instanceof MWindow)
-			frame = (Frame)owner;
-		else if(owner instanceof MAbstractControl)
-			frame = ((MAbstractControl) owner).getPApplet().frame;
+		try {
+			frame = (Frame) ((processing.awt.PSurfaceAWT.SmoothCanvas) owner.getSurface().getNative()).getFrame();
+		}
+		catch(Exception e){
+		}
 		return frame;
 	}
 
-
-
+	
+//	private static Frame getFrame(PApplet owner){
+//		Frame frame = null;
+//		Object obj = owner.getSurface().getNative();
+//		System.out.println(obj.getClass().getName());
+//		if(obj instanceof processing.awt.PSurfaceAWT.SmoothCanvas)
+//			frame = (Frame) ((processing.awt.PSurfaceAWT.SmoothCanvas) obj).getFrame();
+//		return frame;
+//	}
 
 }

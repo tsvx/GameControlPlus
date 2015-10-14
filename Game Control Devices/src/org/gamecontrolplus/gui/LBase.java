@@ -25,7 +25,7 @@ public abstract class LBase implements  PConstants, LConstants {
 	
 	LBase(LConfigUI ccw, float x, float y, int nbr_connects){
 		this.ccw = ccw;
-		app = ccw.window.papplet;
+		app = ccw.window;
 		UI_HEIGHT = ccw.desc_UI_height;
 		px = x;
 		py = y;

@@ -23,7 +23,7 @@ public class LSelectEntry implements Comparable<LSelectEntry> {
 	
 	public LSelectEntry(LSelectUI selWindow, ControlIO controlIO, ControlDevice dev){
 		this.selWindow = selWindow;
-		this.app = selWindow.window.papplet;
+		this.app = selWindow.window;
 		this.controlIO = controlIO;
 		this.device = dev;
 		displayName = new MLabel(app, 36, 20, app.width-36, 20);

@@ -60,4 +60,3 @@ public abstract class TBaseInput extends TBase {
     app.rect(0, 0, ccw.input_UI_length, UI_HEIGHT);
   }
 }
-

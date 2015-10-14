@@ -34,8 +34,8 @@ public class LSelectUI {
 		List<ControlDevice> devices = controlIO.getDevices();
 
 		String title = "Select device for " + LSelectUI.config.getUsgae();
-		window = new MWindow(app, title, 80, 40, 500, 20*(devices.size() + 3), false, PApplet.JAVA2D);
-		window.setResizable(false);
+		window = MWindow.getWindow(app, title, 80, 40, 500, 20*(devices.size() + 3), PApplet.JAVA2D);
+		//window.setResizable(false);
 		window.addDrawHandler(this, "draw");
 		
 		// Add entries for devices added
@@ -44,7 +44,7 @@ public class LSelectUI {
 				deviceEntries.add(new LSelectEntry(this, controlIO, d));
 		}
 
-		createSelectionInterface(window.papplet);
+		createSelectionInterface(window);
 		for(int i = 0; i < deviceEntries.size(); i++)
 			deviceEntries.get(i).setIndex(i);
 	}
@@ -69,7 +69,7 @@ public class LSelectUI {
 		window.forceClose();
 	}
 
-	synchronized public void draw(MWinApplet appc, MWinData data) {
+	synchronized public void draw(PApplet appc, MWinData data) {
 		appc.background(255, 255, 220);
 		appc.stroke(230, 230, 200);
 		appc.fill(240, 240, 210);

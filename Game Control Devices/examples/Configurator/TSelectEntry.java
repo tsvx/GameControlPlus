@@ -40,4 +40,3 @@ public class TSelectEntry implements Comparable<TSelectEntry> {
     return device.compareTo(entry.device);
   }
 }
-
