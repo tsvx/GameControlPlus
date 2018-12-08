@@ -70,14 +70,14 @@ public class M4P implements MConstants, PConstants {
 	 * return the pretty version of the library.
 	 */
 	public static String getPrettyVersion() {
-		return "##library.prettyVersion##";
+		return "1.2.1";
 	}
 
 	/**
 	 * return the version of the library used by Processing
 	 */
 	public static String getVersion() {
-		return "##library.version##";
+		return "7";
 	}
 
 	static int globalColorScheme = MCScheme.BLUE_SCHEME;
@@ -252,7 +252,7 @@ public class M4P implements MConstants, PConstants {
 	static void announceG4P(){
 		if(!announced){
 			System.out.println("===================================================");
-			System.out.println("   ##project.name## V##library.prettyVersion## created by ##author.name##");
+			System.out.println("   GameControlPlus V1.2.1 created by Peter Lager");
 			System.out.println("===================================================");
 			announced = true;
 		}

@@ -245,6 +245,20 @@ public class ControlIO implements Runnable, PCPconstants {
 	}
 
 	/**
+	 * Find and return the ControlDevice that matches the configuration described in the 
+	 * specified file. <br/>
+	 * The user is not given the chance to configure another device if an exact match is
+	 * not found, in this situation the method returns null. <br/>
+	 * 
+	 * @param filename the name of the configuration file
+	 * @return the device or null if no device is configured.
+	 */
+	public ControlDevice getMatchedDeviceSilent(final String filename){
+		Configuration config = Configuration.makeConfiguration(parent, filename);
+		return getMatchedDeviceSilent(config);
+	}
+
+	/**
 	 * Find and return the ControlDevice that matches the specified configuration. <br/>
 	 * If an exact match can't be found give the user an option to configure another device. <br/>
 	 * 
@@ -271,9 +285,33 @@ public class ControlIO implements Runnable, PCPconstants {
 				e.printStackTrace();
 			}
 		}
+		// Need to do this to avoid memory leak.
 		ControlDevice selected = configuredDevice;
 		configuredDevice = null;            
 		return selected;	
+	}
+
+	/**
+	 * Find and return the ControlDevice that matches the specified configuration. <br/>
+	 * The user is not given the chance to configure another device if an exact match is
+	 * not found, in this situation the method returns null. <br/>
+	 * 
+	 * @param config the configuration to match
+	 * @return the device or null if no device is configured.
+	 */
+	public ControlDevice getMatchedDeviceSilent(final Configuration config){
+		for(ControlDevice cd : devices){
+			if(cd.available && cd.matches(config)){
+				configuredDevice = cd;
+				configuredDevice.available = false;
+				configurating = false;
+				return cd;
+			}
+		}
+		// We have scanned the control devices and not found a match
+		configurating = false;
+		configuredDevice = null;
+		return null;	
 	}
 
 	/**

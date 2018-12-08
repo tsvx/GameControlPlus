@@ -61,16 +61,6 @@ public class Configuration implements PCPconstants {
 		return new Configuration(app, configLines, filename);
 	}
 
-//	public static Configuration makeConfiguration(PApplet app, String pathToSketch, String filename){
-//		File file = (IDE == ECLIPSE) ? new File(filename) : new File(pathToSketch +"/data/" + filename);
-//		String[] configLines = PApplet.loadStrings(file);
-//		if(configLines == null){
-//			System.out.println("Unable to find configuration file " + filename);
-//			return null;
-//		}
-//		return new Configuration(app, configLines, filename);
-//	}
-
 	/**
 	 * Save the Configuration details in a file.
 	 */
