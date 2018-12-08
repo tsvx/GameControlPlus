@@ -434,8 +434,11 @@ final class IDirectInputDevice {
 	private final native int nEnumEffects(long address, int flags);
 	
 	/* Called from native side from nEnumEffects */
-	private final void addEffect(byte[] guid, int guid_id, int effect_type, int static_params, int dynamic_params, String name) {
-		effects.add(new DIEffectInfo(this, guid, guid_id, effect_type, static_params, dynamic_params, name));
+	private final void addEffect(byte[] guid, int guid_id, int effect_type, int static_params, int dynamic_params, String name) throws IOException {
+		String from_enc = "Cp1252";
+		String to_enc = "Cp1251";
+		String fixed_name = new String(name.getBytes(from_enc), to_enc);
+		effects.add(new DIEffectInfo(this, guid, guid_id, effect_type, static_params, dynamic_params, fixed_name));
 	}
 
 	private final void enumObjects() throws IOException {
@@ -465,7 +468,10 @@ final class IDirectInputDevice {
 	private final void addObject(byte[] guid, int guid_type, int identifier, int type, int instance, int flags, String name) throws IOException {
 		Component.Identifier id = getIdentifier(guid_type, type, instance);
 		int format_offset = current_format_offset++;
-		DIDeviceObject obj = new DIDeviceObject(this, id, guid, guid_type, identifier, type, instance, flags, name, format_offset);
+		String from_enc = "Cp1252";
+		String to_enc = "Cp1251";
+		String fixed_name = new String(name.getBytes(from_enc), to_enc);
+		DIDeviceObject obj = new DIDeviceObject(this, id, guid, guid_type, identifier, type, instance, flags, fixed_name, format_offset);
 		objects.add(obj);
 	}
 
