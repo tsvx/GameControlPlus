@@ -79,7 +79,11 @@ final class IDirectInput {
 	 */
 	private final void addDevice(long address, byte[] instance_guid, byte[] product_guid, int dev_type, int dev_subtype, String instance_name, String product_name) throws IOException {
 		try {
-			IDirectInputDevice device = new IDirectInputDevice(window, address, instance_guid, product_guid, dev_type, dev_subtype, instance_name, product_name);
+			String from_enc = "Cp1252";
+			String to_enc = "Cp1251";
+			String inst_name = new String(instance_name.getBytes(from_enc), to_enc);
+			String prod_name = new String(product_name.getBytes(from_enc), to_enc);
+			IDirectInputDevice device = new IDirectInputDevice(window, address, instance_guid, product_guid, dev_type, dev_subtype, inst_name, prod_name);
 			devices.add(device);
 		} catch (IOException e) {
 			ControllerEnvironment.logln("Failed to initialize device " + product_name + " because of: " + e);
